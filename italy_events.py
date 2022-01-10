@@ -11,6 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Arc #creates the patches
 import json #reads json file
+import matplotlib.patches as mpatches
 
 
 
@@ -162,6 +163,34 @@ for m,carry in italy_sq1.iterrows():
 #Plot title and other texts
 plt.title('Italy shot on target  in the 52nd Minute ')
 plt.text(5,75,away_team_required + ' attacking') 
+#================================================================ Description of arrows
+left, bottom, width, height = (5, 5, 5, 2)
+rect=mpatches.Rectangle((left,bottom),width,height, 
+                        fill=True,
+                        color="green",
+                       linewidth=2)
+                       #facecolor="red")
+plt.gca().add_patch(rect)
+plt.text(11,5, "- Pass")
+#================================================================
+left, bottom, width, height = (5, 3, 5, 2)
+rect=mpatches.Rectangle((left,bottom),width,height, 
+                        fill=True,
+                        color="black",
+                       linewidth=2)
+                       #facecolor="red")
+plt.gca().add_patch(rect)
+plt.text(11,3, "- Carry")
+#================================================================
+left, bottom, width, height = (5, 1, 5, 2)
+rect=mpatches.Rectangle((left,bottom),width,height, 
+                        fill=True,
+                        color="red",
+                       linewidth=2)
+                       #facecolor="red")
+plt.gca().add_patch(rect)
+plt.text(11,1, "- Shot")
+#================================================================
 plt.text(80,75,home_team_required + ' attacking') 
 fig.set_size_inches(15, 8)
 fig.savefig('/Users/damianesene/Downloads/italy_events.jpg', dpi=300)

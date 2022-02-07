@@ -1,0 +1,79 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Feb  1 23:26:06 2022
+
+@author: damianesene
+"""
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.patches import Arc #creates the patches
+import json #reads json file
+import matplotlib.patches as mpatches
+
+match_id_required = 3795220 #Match Id from Json file
+
+
+pitchLengthX=120
+pitchWidthY=80
+
+home_team_required = "Spain"
+away_team_required = "Italy"
+
+#load the data
+file_name = str(match_id_required)+'.json'
+
+#load in all match events
+with open('/Users/damianesene/Downloads/open-data-master-3/data/events/'+file_name) as data_file:
+    data = json.load(data_file)
+    
+#defines a dataframe
+ #=============================================================================
+from pandas.io.json import json_normalize
+df = json_normalize(data, sep = "_").assign(match_id = file_name[:-5])
+
+Italy =df[df['team_name']=='Italy']
+Italy=Italy.dropna(subset=['location']) #drop valuses with n/a in location column
+
+Italy_Pass = Italy[Italy['type_name']=='Pass']
+
+Italy_Pass[['pass_outcome_name']] = Italy_Pass[['pass_outcome_name']].fillna('Successful') # Fill empty rows for this columns with successful
+
+Italy_Succ = Italy_Pass[Italy_Pass['pass_outcome_name']=='Successful']
+Italy_Succ = Italy_Succ[Italy_Succ['period']<=2] #Successful passes in 90 min
+#subs = Italy[Italy['type_name']=='Substitution']
+#firstSub = "00:16:00.000"
+Italy_Succ_location = pd.DataFrame(Italy_Succ['location'].tolist()) #split location
+Italy_Succ_location= Italy_Succ_location.rename(columns={0: 'X', 1: 'Y'}) #Change Column names
+Italy_Succ = Italy_Succ.reset_index() #reset index so it matches the location df
+Italy_Succ = Italy_Succ.join(Italy_Succ_location) #Add new X and Y columns from location df to succ df
+
+average_locations = Italy_Succ.groupby('player_name').agg({'X':['mean'],'Y':['mean','count']})
+average_locations.columns = ['X','Y','count']
+average_locations = average_locations[average_locations['count']>5] #Subs had less than 5 passes, so im removing them from the plot
+#average_locations=average_locations.reset_index()
+
+pass_between = Italy_Succ.groupby(['player_name','pass_recipient_name']).id.count().reset_index() #group passers and recipients
+pass_between.rename({'id':'pass_count'}, axis='columns', inplace=True)
+pass_between = pass_between.merge(average_locations, left_on='player_name', right_index=True)
+pass_between = pass_between.merge(average_locations, left_on='pass_recipient_name', right_index=True, suffixes=['','_end'])
+pass_between = pass_between[pass_between['pass_count']>3]
+average_locations['players'] = average_locations.index
+average_locations['positions']=['CF','LB','RW','GK','CB','RB','DM','CB','LW','CM','CM']
+
+from mplsoccer.pitch import Pitch
+pitch = Pitch(pitch_color='grass', line_color='white', stripe=True)
+fig, ax = pitch.draw()
+
+arrows = pitch.arrows(1.2*pass_between.X,.8*pass_between.Y,1.2*pass_between.X_end,.8*pass_between.Y_end, ax=ax, headwidth=3, color='white',zorder=1, alpha=.5)
+nodes= pitch.scatter(1.2*average_locations.X,.8*average_locations.Y, s=300, color = 'blue',ax=ax)
+plt.text(90,-1, "@Dame_world")
+plt.title("Italy Passing Network V Spain")
+for index, row in average_locations.iterrows():
+    pitch.annotate(row.positions, xy=(1.2*row.X, .8*row.Y), c='white', size=10, va='center', ha='center',weight='bold', ax=ax)
+#players = pitch.plot((1.2*average_locations.X),(.8*average_locations.Y),average)
+#plt.text((1.2*average_locations.X),.8*average_locations.Y, average_locations.players )
+
+fig.savefig('/Users/damianesene/Downloads/italy_pass_network.jpg', dpi=300)

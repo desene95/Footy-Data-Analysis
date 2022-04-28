@@ -1,5 +1,5 @@
 #!/bin/bash
-date_time=date
+date_time=$(date)
 Recipient="esene789@gmail.com"
 Subject="New file pushed"
 Message="New code pushed to your repository $date_time"
